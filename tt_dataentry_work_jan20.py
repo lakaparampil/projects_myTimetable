@@ -5,7 +5,7 @@ from tkinter import*
 from tkinter import ttk
 import tkinter as tk
 import pandas as pd
-from tt_show_class_dec import TimeTable
+from tt_show_class_jan import TimeTable
 
 def dic1_fun(key_col,val_col):
     keys = df1[key_col]
@@ -100,7 +100,7 @@ def ltp_option_selection(event):
     slot4_dict = dic3_fun("ID3","slot_4")
     slot5_dict = dic3_fun("ID3","slot_5")
     slot6_dict = dic3_fun("ID3","slot_6")
-
+    print(df3.week_day)
     class_x=ltp_code.get()
     print(class_x)
     code_lst = list(code_dict.values())
@@ -221,7 +221,7 @@ def action_option_selection(event):
         pass
     elif action_entry == "PROCEED":
         tt_slot_entry(class_x,data_tt["sub_code"])
-        TimeTable(root)
+        TimeTable(root,f"timeTable_{data_tt['class_dept']}.xlsx",data_tt["class_semester"])
     else:
         pass
 def tt_slot_entry(class_type,sub_selected):
@@ -484,3 +484,4 @@ verify_button.grid(row=2,column=2,padx=2,pady=2,sticky="nsew")
 update_button=Button(lf4,text="Update TimeTable",bg="white",command=update_tt)
 update_button.grid(row=2,column=3,padx=2,pady=2,sticky="nsew")
 root.mainloop()
+#
