@@ -4,8 +4,9 @@
 from tkinter import*
 from tkinter import ttk
 import tkinter as tk
+from openpyxl import load_workbook
 import pandas as pd
-from tt_show_class_jan import TimeTable
+from tt_show_class_jan20 import TimeTable
 
 def dic1_fun(key_col,val_col):
     keys = df1[key_col]
@@ -177,7 +178,7 @@ def ltp_option_selection(event):
             print("Who")
     sub_code.set('')
     sub_code.config(values=code_lst)
-
+    print(code_lst)
 def check_tt_space(check_tt_list):
     global slot1_dict,slot2_dict,slot3_dict,slot4_dict
     global slot5_dict,slot6_dict    
@@ -208,36 +209,139 @@ def check_tt_space(check_tt_list):
         if slot6_list[i] == check_tt_list: 
             count_used = count_used +1
     return(count_used)   
-
 def sub_option_selection(event):
     data_tt["sub_code"] = sub_code.get()
     action_code.config(values=("PROCEED","CLEAR"))
 def action_option_selection(event):
-    global class_x
+    global class_x,data,ro_co_dict,row_val
     action_entry=action_code.get()
     #print(data_tt)
     if action_entry == "CLEAR":
         lf1_lf2_clear()
         pass
     elif action_entry == "PROCEED":
-        tt_slot_entry(class_x,data_tt["sub_code"])
-        TimeTable(root,f"timeTable_{data_tt['class_dept']}.xlsx",data_tt["class_semester"])
-    else:
-        pass
-def tt_slot_entry(class_type,sub_selected):
-    match class_type:
-        case "Lecture":
-            cb1.config(state='normal')
-            cb2.config(state='normal')
-            cb3.config(state='normal')
-            cb4.config(state='normal')
-            cb5.config(state='normal')
-            cb6.config(state='normal')
-            key_lec = find_key(code_dict,sub_selected)
-            hr_count = lec_dict[key_lec]
-            print(class_type,sub_selected,hr_count) 
+        ro_co_dict = {}
+        for i in range(5):
+            ro_co_dict.update({i:[0 for _ in range(7)]})  
+        TimeTable(root,f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get())
+        data = []
+        workbook = load_workbook(filename=f"timeTable_{assign_dept_code.get()}.xlsx",read_only=True)
+        sheet = workbook[semester_code.get()]
+        for row in sheet.iter_rows(values_only=False):
+            data.append([sheet.cell.value for sheet.cell in row])
+        workbook.close()
+        row_val = []
+        week_click(None)
+def week_click(week_value:any):
+    cb1.config(state='disabled')
+    cb2.config(state='disabled')
+    cb3.config(state='disabled')
+    cb4.config(state='disabled')
+    cb5.config(state='disabled')
+    cb6.config(state='disabled')
+    cb7.config(state='disabled')
+    sr0.set(0)
+    sr1.set(0)
+    sr2.set(0)
+    sr3.set(0)
+    sr4.set(0)
+    sr5.set(0)
+    sr6.set(0)
+    data_row = data[r3.get()+1]
+    if data_row[1] == "FREE":
+        cb1.config(state='normal')
+    if data_row[2] == "FREE":
+        cb2.config(state='normal')
+    if data_row[3] == "FREE":
+        cb3.config(state='normal')
+    if data_row[4] == "FREE":
+        cb4.config(state='normal')
+    if data_row[5] == "FREE":
+        cb5.config(state='normal')
+    if data_row[6] == "FREE":
+        cb6.config(state='normal') 
+def refresh_weekslot():
+    global ro_co_dict,row_val,col_val,entry_complete,lec_count
+    ro_co_dict[r3.get()] = [sr0.get(),sr1.get(),sr2.get(),sr3.get(),sr4.get(),sr5.get(),sr6.get()]
+    print(ro_co_dict)
 
-    pass
+    match ltp_code.get():
+        case "Lecture":
+            entry_complete = "N"
+            sub_selected = sub_code.get()
+            L_key = find_key(code_dict,sub_selected)
+            lec_count = lec_dict[L_key]
+            tut_count = tut_dict[L_key]
+            print(lec_count,tut_count)
+            if len(row_val) < lec_count:
+                row_val = []
+                col_val = []
+                for ro in range(5):
+                    for co in range(7):
+                        if ro_co_dict[ro][co] == 1:
+                            row_val.append(ro)
+                            col_val.append(co)
+                            data[ro+1][co+1] = sub_code.get()
+            print(len(row_val))
+            if len(row_val) > lec_count:
+                print(f"Lecture count {sub_code.get()} exceeded requirement:RE-ENTER")
+                row_val = []
+                col_val = []
+                for ro in range(5):
+                    for co in range(7):
+                        if ro_co_dict[ro][co] == 1:
+                            row_val.append(ro)
+                            col_val.append(co)
+                            data[ro+1][co+1] = "FREE"
+            elif len(row_val) < lec_count:     
+                data_row = data[r3.get()+1]
+                if data_row[1] == "FREE":
+                    cb1.config(state='normal')
+                if data_row[2] == "FREE":
+                    cb2.config(state='normal')
+                if data_row[3] == "FREE":
+                    cb3.config(state='normal')
+                if data_row[4] == "FREE":
+                    cb4.config(state='normal')
+                if data_row[5] == "FREE":
+                    cb5.config(state='normal')
+                if data_row[6] == "FREE":
+                    cb6.config(state='normal')                
+            else:
+                pass
+    text_box2.delete('1.0','end')
+    print(data[r3.get()+1][0])
+    slot = ro_co_dict[r3.get()].index(1)
+    print(slot)
+    text_box2.insert('1.0',f"Verify your choice {ltp_code.get()} : {data[r3.get()+1][0]} : slot-{ro_co_dict[r3.get()].index(1)+1} for {sub_code.get()}")
+    #text_box2.insert('1.0',f"Verify your choice {ltp_code.get()} : {data[2]} :  Lecture {sub_code.get()}")
+def verify_ok():
+    global lec_count
+    lec_intt = 0
+    for ro in range(5):
+        for co in range(7):
+            if data[ro+1][co+1] == sub_code.get():
+                lec_intt = lec_intt + 1
+    print(lec_intt)
+    if lec_intt != lec_count:
+        text_box2.delete('1.0','end')
+        text_box2.insert('1.0',f"Update to save {sub_code.get()} : {lec_count} lecture slots, {lec_intt-1} saved. ENTER all slots for {sub_code.get()}")
+    else:
+        text_box2.delete('1.0','end')
+        text_box2.insert('1.0',f"Save {sub_code.get()} : Update to save")
+def update_tt():
+    workbook = load_workbook(filename=f"timeTable_{assign_dept_code.get()}.xlsx")
+    sheet = workbook[semester_code.get()]
+    match ltp_code.get():
+        case "Lecture":
+            for i in range(len(row_val)):
+                sheet.cell(row=row_val[i]+2,column=col_val[i]+2,value=sub_code.get())
+    workbook.save(filename=f"timeTable_{assign_dept_code.get()}.xlsx")
+    workbook.close()
+    text_box2.delete('1.0','end')
+    text_box2.insert('1.0',f"Timetable updated for {assign_dept_code.get()} : {semester_code.get()} :  Lecture {sub_code.get()}")
+    TimeTable(root,f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get())
+
 def cancel_option_selection(event):
     lf1_lf2_clear()
     pass
@@ -264,17 +368,6 @@ def clear_day_slot():
     sr4.set(0)
     sr5.set(0)
     sr6.set(0)
-
-def week_click(week_value):
-    day_slot["week_slot"]=r3.get()
-    day_slot["time_slot0"]=sr0.get()
-    day_slot["time_slot1"]=sr1.get()
-    day_slot["time_slot2"]=sr2.get()
-    day_slot["time_slot3"]=sr3.get()
-    day_slot["time_slot4"]=sr4.get()
-    day_slot["time_slot5"]=sr5.get()
-    day_slot["time_slot6"]=sr6.get()
-    print(day_slot)
 
 def cancel_option(event):
     global clear_status
@@ -307,11 +400,8 @@ def confirm_cancel():
     else:
         clear_ALL()
     """
-def verify_ok():
-    pass
-def update_tt():
-    print("123")
-    TimeTable(root)
+
+
 
 root=Tk()
 root.title("Data entry by Faculty for TimeTable")
@@ -432,6 +522,8 @@ week_day=["Monday","Tuesday","Wednesday","Thursday","Friday"]
 for i in range(len(week_day)):
     week=(Radiobutton(lf3,text=week_day[i],variable=r3,value=i,command=lambda:week_click(r3.get())))
     week.grid(row=0,column=i+1,padx=10,pady=2,sticky="nsew")
+refresh_button = Button(lf3,text="REFRESH",command=refresh_weekslot)
+refresh_button.grid(row=0,column=6,padx=2,pady=2,sticky="nsew")
 #print(week.r3)
 show_msg=Label(lf3,text="-----------Slot 1 to Slot 6 for Lecture & Tutorial and Slot X optional-------------",fg="Blue")
 show_msg.grid(row=1, column=0, columnspan=7,padx=2,pady=2,sticky="nsew")
