@@ -101,14 +101,14 @@ def ltp_option_selection(event):
     slot4_dict = dic3_fun("ID3","slot_4")
     slot5_dict = dic3_fun("ID3","slot_5")
     slot6_dict = dic3_fun("ID3","slot_6")
-    print(df3.week_day)
-    class_x=ltp_code.get()
-    print(class_x)
+    #print(df3.week_day)
+    #class_x=ltp_code.get()
+    #print(class_x)
     code_lst = list(code_dict.values())
     code_ref_lst = []
     class_count_lst = list(class_count_dict.values())
     class_count_ref_lst = []
-    match class_x:
+    match ltp_code.get():
         case "Lecture":
             lec_lst = list(lec_dict.values())           
             lec_ref_lst = []
@@ -232,6 +232,10 @@ def action_option_selection(event):
         workbook.close()
         row_val = []
         week_click(None)
+        refresh_button.config(bg="Blue",fg="white")
+        text_box2.delete('1.0','end')
+        text_box2.insert('1.0',f"Select weekday and available slot before REFRESH")
+
 def week_click(week_value:any):
     cb1.config(state='disabled')
     cb2.config(state='disabled')
@@ -264,7 +268,6 @@ def refresh_weekslot():
     global ro_co_dict,row_val,col_val,entry_complete,lec_count
     ro_co_dict[r3.get()] = [sr0.get(),sr1.get(),sr2.get(),sr3.get(),sr4.get(),sr5.get(),sr6.get()]
     print(ro_co_dict)
-
     match ltp_code.get():
         case "Lecture":
             entry_complete = "N"
@@ -309,14 +312,12 @@ def refresh_weekslot():
                     cb6.config(state='normal')                
             else:
                 pass
+    refresh_button.config(bg="white",fg="black")
+    verify_button.config(bg="Blue",fg="white")
     text_box2.delete('1.0','end')
-    print(data[r3.get()+1][0])
-    slot = ro_co_dict[r3.get()].index(1)
-    print(slot)
-    text_box2.insert('1.0',f"Verify your choice {ltp_code.get()} : {data[r3.get()+1][0]} : slot-{ro_co_dict[r3.get()].index(1)+1} for {sub_code.get()}")
-    #text_box2.insert('1.0',f"Verify your choice {ltp_code.get()} : {data[2]} :  Lecture {sub_code.get()}")
+    text_box2.insert('1.0',f"Confirm your choice ((({ltp_code.get()} : {data[r3.get()+1][0]} : slot-{ro_co_dict[r3.get()].index(1)+1}))) for {sub_code.get()}")
 def verify_ok():
-    global lec_count
+    global lec_count,lec_intt
     lec_intt = 0
     for ro in range(5):
         for co in range(7):
@@ -325,11 +326,14 @@ def verify_ok():
     print(lec_intt)
     if lec_intt != lec_count:
         text_box2.delete('1.0','end')
-        text_box2.insert('1.0',f"Update to save {sub_code.get()} : {lec_count} lecture slots, {lec_intt-1} saved. ENTER all slots for {sub_code.get()}")
+        text_box2.insert('1.0',f"Update to save {sub_code.get()} : {lec_count} {ltp_code.get()} slots, {lec_intt-1} saved. ENTER all slots for {sub_code.get()}")
     else:
         text_box2.delete('1.0','end')
         text_box2.insert('1.0',f"Save {sub_code.get()} : Update to save")
+    update_button.config(bg="Blue",fg="white")
+    verify_button.config(bg="white",fg="black")
 def update_tt():
+    global lec_intt
     workbook = load_workbook(filename=f"timeTable_{assign_dept_code.get()}.xlsx")
     sheet = workbook[semester_code.get()]
     match ltp_code.get():
@@ -341,7 +345,12 @@ def update_tt():
     text_box2.delete('1.0','end')
     text_box2.insert('1.0',f"Timetable updated for {assign_dept_code.get()} : {semester_code.get()} :  Lecture {sub_code.get()}")
     TimeTable(root,f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get())
-
+    update_button.config(bg="white",fg="black")
+    text_box2.delete('1.0','end')
+    if lec_count != lec_intt:
+        text_box2.insert('1.0',f"{sub_code.get()} : {lec_count} {ltp_code.get()} slots, {lec_intt} saved. ENTER all slots for {sub_code.get()}")
+    else:
+        text_box2.insert('1.0',f"{sub_code.get()} : All {lec_count} {ltp_code.get()} slots saved in Timetable")
 def cancel_option_selection(event):
     lf1_lf2_clear()
     pass
@@ -400,9 +409,6 @@ def confirm_cancel():
     else:
         clear_ALL()
     """
-
-
-
 root=Tk()
 root.title("Data entry by Faculty for TimeTable")
 w_width = root.winfo_screenwidth()
