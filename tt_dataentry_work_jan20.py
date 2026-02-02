@@ -31,17 +31,21 @@ def parent_dept_selection(event):
     data_tt["faculty_dept"] = dept_code.get()
     df2 = pd.read_excel("faculty_data.xlsx",sheet_name=data_tt["faculty_dept"])
     df2["ID2"] = df2.index
-    #print(df2)
     emp_code.set('')
     emp_dict = dic2_fun("ID2","Emp_code")
     dept_dict = dic2_fun("ID2","Dept")
     nick_name_dict = dic2_fun("ID2","Nick_name")
-    position_dict = dic2_fun("ID2","Position")  
+    position_dict = dic2_fun("ID2","Position")
     emp_list = list(emp_dict.values())
     emp_code.config(values=emp_list)
 def emp_code_selection(event):
     global data_tt,emp_dict,nick_name_dict
     data_tt["faculty_code"] = emp_code.get()
+
+
+    print(nick_name_dict[find_key(emp_dict,int(emp_code.get()))])
+
+
     x_val = find_key(emp_dict,int(data_tt["faculty_code"]))
     my_data_tt["my_name"] = nick_name_dict[x_val]
     assign_dept_code.config(values=("CE","ME","EE"))
@@ -124,6 +128,12 @@ def ltp_option_selection(event):
                 L_consumed = check_tt_space(code_ref_lst[j])
                 if (L_count-L_consumed) > 0:
                     code_lst.append(code_ref_lst[j])
+        # avoid other staff already committed lecture
+            code_lec_lst = []
+            for k in range(len(code_lst)):
+                sub_lec_faculty = {}
+#@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
         case "Tutorial":
             tut_lst = list(tut_dict.values())
             for i in range(len(tut_lst)):
@@ -450,6 +460,10 @@ dept_emp_code=Label(lf1,text="Parent Dept.& Emp.Code",width=15)
 dept_emp_code.grid(row=0,column=0,columnspan=2,padx=2,pady=2,sticky="nsew")
 dept_class=Label(lf1,text="Assigned Department/Semester",width=15)
 dept_class.grid(row=0,column=2,columnspan=2,padx=2,pady=2,sticky="nsew")
+sub_lec_faculty = {}
+sub_tut_faculty = {}
+sub_lab_faculty = {}
+sub_proj_faculty = {}
 #lf1 entries
 dept_options=StringVar()
 dept_code=ttk.Combobox(lf1,textvariable=dept_options,state='raedonly')
