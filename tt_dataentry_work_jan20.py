@@ -25,33 +25,29 @@ def find_key(dictionary,value):
         if val == value:
             return(key)
     return None
-#return[key for key,val in dictionary.items() if val == value]
+
 def parent_dept_selection(event): 
     global df2,emp_dict,nick_name_dict
-    data_tt["faculty_dept"] = dept_code.get()
-    df2 = pd.read_excel("faculty_data.xlsx",sheet_name=data_tt["faculty_dept"])
+    df2 = pd.read_excel("faculty_data.xlsx",sheet_name=dept_code.get())
     df2["ID2"] = df2.index
     emp_code.set('')
-    emp_dict = dic2_fun("ID2","Emp_code")
-    dept_dict = dic2_fun("ID2","Dept")
-    nick_name_dict = dic2_fun("ID2","Nick_name")
-    position_dict = dic2_fun("ID2","Position")
+    emp_dict = dic2_fun("ID2","emp_code")
+    dept_dict = dic2_fun("ID2","dept")
+    nick_name_dict = dic2_fun("ID2","nick_name")
+    position_dict = dic2_fun("ID2","position")
     emp_list = list(emp_dict.values())
     emp_code.config(values=emp_list)
 def emp_code_selection(event):
-    global data_tt,emp_dict,nick_name_dict
-    data_tt["faculty_code"] = emp_code.get()
-
-
-    print(nick_name_dict[find_key(emp_dict,int(emp_code.get()))])
-
-
-    x_val = find_key(emp_dict,int(data_tt["faculty_code"]))
-    my_data_tt["my_name"] = nick_name_dict[x_val]
+    #global data_tt,emp_dict,nick_name_dict
+    #data_tt["faculty_code"] = emp_code.get()
+    #x_val = find_key(emp_dict,int(data_tt["faculty_code"]))
+    #my_data_tt["my_name"] = nick_name_dict[x_val]
+    #print(int(emp_code.get()),nick_name_dict[x_val])
+    assign_dept_code.set('')
     assign_dept_code.config(values=("CE","ME","EE"))
 def dept_option_selection(event):
-    data_tt["class_dept"] = assign_dept_code.get()
-    my_data_tt["my_class"] = data_tt["class_dept"] 
+    #data_tt["class_dept"] = assign_dept_code.get()
+    #my_data_tt["my_class"] = data_tt["class_dept"] 
     odd_even_code.config(values=("ODD","EVEN"))
 def odd_even_selection(event):
     global odd_even
@@ -67,6 +63,7 @@ def odd_even_selection(event):
 def semester_option_selection(event):
     global df1,odd_even
     data_tt["class_semester"] = semester_code.get()
+    ltp_code.set('')
     ltp_code.config(values=("Lecture","Tutorial","Practical","Projects"))
 def ltp_option_selection(event):
     global class_x,df1,df3
@@ -74,12 +71,14 @@ def ltp_option_selection(event):
     global slot5_dict,slot6_dict
     df1 = pd.read_excel(f"curiculam_{data_tt['class_dept']}.xlsx",sheet_name=data_tt["class_semester"])
     df1["ID1"] = df1.index
+    
     global code_dict,select_dict,class_count_dict
     global lec_dict,tut_dict,lab_dict,proj_dict
     global class_x,code_ref_lst,lec_ref_lst
     code_dict = dic1_fun("ID1","Code")
     select_dict = dic1_fun("ID1","Select")
     class_count_dict = dic1_fun("ID1","Number")
+
     lec_dict = dic1_fun("ID1","L")
     tut_dict = dic1_fun("ID1","T")
     lab_dict = dic1_fun("ID1","P")
@@ -95,6 +94,8 @@ def ltp_option_selection(event):
             del lab_dict[i]
             del proj_dict[i]
             del class_count_dict[i]
+# Read the faculty assignment data for the selected odd/even semester
+
 # Read the selected subject codes from the time table to avoid duplicate entry
     df3 = pd.read_excel(f"timeTable_{my_data_tt['my_class']}.xlsx",sheet_name=my_data_tt["my_sem"])
     df3["ID3"] = df3.index
@@ -129,9 +130,33 @@ def ltp_option_selection(event):
                 if (L_count-L_consumed) > 0:
                     code_lst.append(code_ref_lst[j])
         # avoid other staff already committed lecture
-            code_lec_lst = []
-            for k in range(len(code_lst)):
-                sub_lec_faculty = {}
+            data_df5 = []
+            wb5 = load_workbook(filename=f"faculty_assignment_{odd_even_code.get()}.xlsx")
+            sheet = wb5[assign_dept_code.get()]
+            headers = [cell.value for cell in sheet[1]]
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                rowdf5_dict = dict(zip(headers, row))
+                data_df5.append(rowdf5_dict)
+            wb5.close()
+            data_df21 = []
+            wb21 = load_workbook("faculty_data.xlsx")
+            sheet = wb21[dept_code.get()]
+            headers = [cell.value for cell in sheet[1]]
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                rowdf2_dict = dict(zip(headers, row))
+                data_df21.append(rowdf2_dict)
+            wb21.close()
+            wb21_empcode_index = next(i for i, item in enumerate(data_df21) if item["emp_code"] == int(emp_code.get()))
+            print(data_df21[wb21_empcode_index]["nick_name"])
+            """
+            # for i in range(len(data_df5)):
+            #    print(data_df5[i]["nick_name"])
+            for j in range(len(code_lst)):
+                for i in range(len(data_df21)):
+                    if data_df21[i]["sub_code"] == sub_code.get() and data_df21[i]["nick_name"] == code_lst[j]:
+                        code_lst.remove(code_lst[j])
+                        break
+            """
 #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         case "Tutorial":
