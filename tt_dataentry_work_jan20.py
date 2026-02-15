@@ -33,14 +33,23 @@ def excel_read1(file_name,sheet_name):
     return row_df_ret
 def parent_dept_selection(event): 
     global data_faculty
+    action_code.set('')
+    action_code.config(values=(''))
+    emp_code.set('')
     data_faculty = excel_read1("faculty_data",dept_code.get())
     emp_code.config(values=data_faculty[1]["emp_code"])
 def emp_code_selection(event):
+    action_code.set('')
+    action_code.config(values=(''))
     assign_dept_code.set('')
     assign_dept_code.config(values=("CE","ME","EE"))
 def dept_option_selection(event):
     odd_even_code.config(values=("ODD","EVEN"))
+    action_code.set('')
+    action_code.config(values=('')) 
 def odd_even_selection(event):
+    action_code.set('')
+    action_code.config(values=(''))
     odd_even = odd_even_code.get()
     if odd_even == 'ODD':
         odd_even_list = ['s1','s3','s5','s7']
@@ -51,9 +60,14 @@ def odd_even_selection(event):
     semester_code.set('')
     semester_code.config(values=odd_even_list)
 def semester_option_selection(event):
+    action_code.set('')
+    action_code.config(values=(''))
     ltp_code.set('')
     ltp_code.config(values=("Lecture","Tutorial","Practical","Projects"))
 def ltp_option_selection(event):
+    action_code.set('')
+    action_code.config(values=(''))
+    global data_faculty,data_tt,data_temp,faculty_sel
     data_curi = excel_read1(f"curiculam_{assign_dept_code.get()}",semester_code.get())
     new_row_lst = [data_curi[0][i] for i in range(len(data_curi[1]["Select"])) if data_curi[1]["Select"][i] != 0]
     data_col_lst = list(data_curi[1].values())  
@@ -61,128 +75,73 @@ def ltp_option_selection(event):
     cur_col_dict = dict(zip(data_curi[2], cur_col_lst))
     data_tt = excel_read1(f"timeTable_{assign_dept_code.get()}",semester_code.get())
     data_temp = excel_read1(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get())
-    global data_faculty
+    faculty_sel = (data_faculty[1]["nick_name"][(data_faculty[1]["emp_code"].index(int(emp_code.get())))]) #from faculty file
     match ltp_code.get():
         case "Lecture":
             cur_lec_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["L"])[i] != 0]
             cur_L_lst = [(cur_col_dict["L"])[i] for i in range(len(cur_col_dict["L"])) if list(cur_col_dict["L"])[i] != 0]
-            #print(cur_lec_lst)
-            #print(cur_L_lst)
         # avoid duplicate entry in Lecture
             new_lec_lst = [lec for lec in cur_lec_lst if cur_L_lst[cur_lec_lst.index(lec)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == lec])]
-            print(new_lec_lst)
-            #print(data_temp[1]["emp_code"].index(emp_code.get()))
-            faculty_sel = data_faculty[1]["nick_name"][data_faculty[1]["emp_code"].index(int(emp_code.get()))] #from faculty file
-            return
-
-
-            L_code = new_lec_lst[(data_curi[1]["L"].index(1))] #from curriculum file
-            L_code = data_temp[1]["L_code"][(data_temp[1]["nick_name"].index(faculty_sel))]
-            print(new_lec_lst.index(L_code))
-            L_hr = data_temp[1]["L_hr"][(data_temp[1]["nick_name"].index(faculty_sel))]
-            print(faculty_sel,L_code,L_hr)
-            
-
-#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            d = dict(zip(data_temp[1]["emp_code"],data_temp[1]["nick_name"]))
-            print(d[data_temp[1]["emp_code"].index(emp_code.get())])            
-            code_lst = new_lec_lst
-            print(code_lst)
+            code_lst = []
+            for i in range(len(new_lec_lst)):
+                if new_lec_lst[i] not in data_temp[1]["L_code"]:
+                    code_lst.append(new_lec_lst[i])
+                else:
+                    if faculty_sel == data_temp[1]["nick_name"][data_temp[1]["L_code"].index(new_lec_lst[i])]:
+                        code_lst.append(new_lec_lst[i])
+                        print(faculty_sel,data_temp[1]["nick_name"][(data_temp[1]["L_code"].index(new_lec_lst[i]))])             
         case "Tutorial":
             cur_tut_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["T"])[i] != 0]
             cur_T_lst = [(cur_col_dict["T"])[i] for i in range(len(cur_col_dict["T"])) if list(cur_col_dict["T"])[i] != 0]
             cur_num_lst = [(cur_col_dict["Number"])[i] for i in range(len(cur_col_dict["Number"])) if list(cur_col_dict["T"])[i] != 0]
-
             new_tut_lst = [tut for tut in cur_tut_lst if cur_T_lst[cur_tut_lst.index(tut)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == tut])]
-            print(cur_tut_lst)
-            print(cur_T_lst)
-            print(cur_num_lst)
-            new_tut_lst = [tut for tut in cur_tut_lst if cur_T_lst[cur_tut_lst.index(tut)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == tut])]
-            print(new_tut_lst)
-            return
-
-        # avoid duplicate entry in tutorial
-            code_lst = []
-            T_count = 0
-            x = len(class_count_ref_lst)
-            for j in range(x):
-                if class_count_ref_lst[j] <= 26:
+            """    
+        # count faculty for tutorial    
+            T_num_lst = []
+            for i in range(len(cur_tut_lst)):
+                if cur_num_lst[i] <= 26:
                     T_count = 1
-                elif class_count_ref_lst[j] <= 48:
+                elif cur_num_lst[i] <= 48:
                     T_count = 2
                 else:
                     T_count = 3
-                T_consumed = check_tt_space(code_ref_lst[j])
-                if (T_count-T_consumed) > 0:
-                    code_lst.append(code_ref_lst[j])
-        case "Practical":
-            lab_lst = list(lab_dict.values())           
-            for i in range(len(lab_lst)):
-                if lab_lst[i] != 0:
-                    class_count_ref_lst.append(class_count_lst[i])
-                    code_ref_lst.append(code_lst[i])
-        # avoid duplicate entry in Practical
+                T_num_lst.append(T_count)
+            print(T_num_lst)
+            """
             code_lst = []
-            P_count = 0
-            x = len(class_count_ref_lst)
-            for j in range(x):
-                if class_count_ref_lst[j] <= 18:
-                    P_count = 1
-                elif class_count_ref_lst[j] <= 36:
-                    P_count = 2
-                elif class_count_ref_lst[j] <= 54:
-                    P_count = 3
+            for i in range(len(cur_tut_lst)):
+                if cur_tut_lst[i] not in data_temp[1]["T_code"]:
+                    code_lst.append(cur_tut_lst[i])
                 else:
-                    P_count = 4
-                P_consumed = check_tt_space(code_ref_lst[j])
-                if (P_count-P_consumed) > 0:
-                    code_lst.append(code_ref_lst[j])
+                    if faculty_sel != data_temp[1]["nick_name"][data_temp[1]["T_code"].index(cur_tut_lst[i])]:
+                        code_lst.append(cur_tut_lst[i])              
+        case "Practical":
+            cur_lab_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["P"])[i] != 0]
+            cur_P_lst = [(cur_col_dict["P"])[i] for i in range(len(cur_col_dict["P"])) if list(cur_col_dict["P"])[i] != 0]
+            cur_num_lst = [(cur_col_dict["Number"])[i] for i in range(len(cur_col_dict["Number"])) if list(cur_col_dict["P"])[i] != 0]
+            new_lab_lst = [lab for lab in cur_lab_lst if cur_P_lst[cur_lab_lst.index(lab)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == lab])]          
+            code_lst = []
+            for i in range(len(cur_lab_lst)):
+                if cur_lab_lst[i] not in data_temp[1]["P_code"]:
+                    code_lst.append(cur_lab_lst[i])
+                else:
+                    if faculty_sel != data_temp[1]["nick_name"][data_temp[1]["T_code"].index(cur_lab_lst[i])]:
+                        code_lst.append(cur_lab_lst[i])                 
         case "Projects":
-            proj_lst = list(proj_dict.values())           
-            proj_ref_lst = []
-            for i in range(len(proj_lst)):
-                if proj_lst[i] != 0:
-                    proj_ref_lst.append(proj_lst[i])
-                    code_ref_lst.append(code_lst[i])
-            code_lst = code_ref_lst
+            cur_pro_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["R"])[i] != 0]
+            cur_R_lst = [(cur_col_dict["R"])[i] for i in range(len(cur_col_dict["R"])) if list(cur_col_dict["R"])[i] != 0]
+            cur_num_lst = [(cur_col_dict["Number"])[i] for i in range(len(cur_col_dict["Number"])) if list(cur_col_dict["R"])[i] != 0]
+            new_pro_lst = [pro for pro in cur_pro_lst if cur_R_lst[cur_pro_lst.index(pro)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == pro])]
+            code_lst = new_pro_lst
         case _:
             print("Who")
     sub_code.set('')
     sub_code.config(values=code_lst)
-def check_tt_space(check_tt_list):
-    global slot1_dict,slot2_dict,slot3_dict,slot4_dict
-    global slot5_dict,slot6_dict    
-    #print(check_tt_list)  
-    count_used = 0
-    slot1_list=list(slot1_dict.values())
-    for i in range(len(slot1_list)):
-        if slot1_list[i] == check_tt_list: 
-            count_used = count_used +1
-    slot2_list=list(slot2_dict.values())
-    for i in range(len(slot2_list)):
-        if slot2_list[i] == check_tt_list: 
-            count_used = count_used +1
-    slot3_list=list(slot3_dict.values())
-    for i in range(len(slot3_list)):
-        if slot3_list[i] == check_tt_list: 
-            count_used = count_used +1
-    slot4_list=list(slot4_dict.values())
-    for i in range(len(slot4_list)):
-        if slot4_list[i] == check_tt_list: 
-            count_used = count_used +1
-    slot5_list=list(slot5_dict.values())
-    for i in range(len(slot5_list)):
-        if slot5_list[i] == check_tt_list: 
-            count_used = count_used +1
-    slot6_list=list(slot6_dict.values())
-    for i in range(len(slot6_list)):
-        if slot6_list[i] == check_tt_list: 
-            count_used = count_used +1
-    return(count_used)   
 def sub_option_selection(event):
-    data_tt["sub_code"] = sub_code.get()
+    #data_tt["sub_code"] = sub_code.get()
     action_code.config(values=("PROCEED","CLEAR"))
 def action_option_selection(event):
+    global data_tt,data_faculty
     global class_x,data,ro_co_dict,row_val
     action_entry=action_code.get()
     #print(data_tt)
@@ -190,22 +149,14 @@ def action_option_selection(event):
         lf1_lf2_clear()
         pass
     elif action_entry == "PROCEED":
+        TimeTable(root,f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get())
         ro_co_dict = {}
         for i in range(5):
-            ro_co_dict.update({i:[0 for _ in range(7)]})  
-        TimeTable(root,f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get())
-        data = []
-        workbook = load_workbook(filename=f"timeTable_{assign_dept_code.get()}.xlsx",read_only=True)
-        sheet = workbook[semester_code.get()]
-        for row in sheet.iter_rows(values_only=False):
-            data.append([sheet.cell.value for sheet.cell in row])
-        workbook.close()
-        row_val = []
+            ro_co_dict.update({i:[0 for _ in range(7)]})
         week_click(None)
         refresh_button.config(bg="Blue",fg="white")
         text_box2.delete('1.0','end')
-        text_box2.insert('1.0',f"Select weekday and available slot before REFRESH")
-
+        text_box2.insert('1.0',f"Select weekday and one from available slot before REFRESH")
 def week_click(week_value:any):
     cb1.config(state='disabled')
     cb2.config(state='disabled')
@@ -221,98 +172,61 @@ def week_click(week_value:any):
     sr4.set(0)
     sr5.set(0)
     sr6.set(0)
-    data_row = data[r3.get()+1]
-    if data_row[1] == "FREE":
+    if data_tt[0][r3.get()][data_tt[2][1]] == "FREE":
         cb1.config(state='normal')
-    if data_row[2] == "FREE":
+    if data_tt[0][r3.get()][data_tt[2][2]] == "FREE":
         cb2.config(state='normal')
-    if data_row[3] == "FREE":
+    if data_tt[0][r3.get()][data_tt[2][3]] == "FREE":
         cb3.config(state='normal')
-    if data_row[4] == "FREE":
+    if data_tt[0][r3.get()][data_tt[2][4]] == "FREE":
         cb4.config(state='normal')
-    if data_row[5] == "FREE":
+    if data_tt[0][r3.get()][data_tt[2][5]] == "FREE":
         cb5.config(state='normal')
-    if data_row[6] == "FREE":
-        cb6.config(state='normal') 
+    if data_tt[0][r3.get()][data_tt[2][6]] == "FREE":
+        cb6.config(state='normal')
+    verify_button.config(bg="white",fg="black")
 def refresh_weekslot():
-    global ro_co_dict,row_val,col_val,entry_complete,lec_count
     ro_co_dict[r3.get()] = [sr0.get(),sr1.get(),sr2.get(),sr3.get(),sr4.get(),sr5.get(),sr6.get()]
-    print(ro_co_dict)
-    match ltp_code.get():
-        case "Lecture":
-            entry_complete = "N"
-            sub_selected = sub_code.get()
-            L_key = find_key(code_dict,sub_selected)
-            lec_count = lec_dict[L_key]
-            tut_count = tut_dict[L_key]
-            print(lec_count,tut_count)
-            if len(row_val) < lec_count:
-                row_val = []
-                col_val = []
-                for ro in range(5):
-                    for co in range(7):
-                        if ro_co_dict[ro][co] == 1:
-                            row_val.append(ro)
-                            col_val.append(co)
-                            data[ro+1][co+1] = sub_code.get()
-            print(len(row_val))
-            if len(row_val) > lec_count:
-                print(f"Lecture count {sub_code.get()} exceeded requirement:RE-ENTER")
-                row_val = []
-                col_val = []
-                for ro in range(5):
-                    for co in range(7):
-                        if ro_co_dict[ro][co] == 1:
-                            row_val.append(ro)
-                            col_val.append(co)
-                            data[ro+1][co+1] = "FREE"
-            elif len(row_val) < lec_count:     
-                data_row = data[r3.get()+1]
-                if data_row[1] == "FREE":
-                    cb1.config(state='normal')
-                if data_row[2] == "FREE":
-                    cb2.config(state='normal')
-                if data_row[3] == "FREE":
-                    cb3.config(state='normal')
-                if data_row[4] == "FREE":
-                    cb4.config(state='normal')
-                if data_row[5] == "FREE":
-                    cb5.config(state='normal')
-                if data_row[6] == "FREE":
-                    cb6.config(state='normal')                
-            else:
-                pass
-    refresh_button.config(bg="white",fg="black")
+    if 1 not in ro_co_dict[r3.get()]:
+        text_box2.insert('1.0',f"!!WARNING!! Select weekday and one from available slot before REFRESH...................")
+        return
+    #print(r3.get(),ro_co_dict[r3.get()].index(1))
+    refresh_button.config(bg="yellow",fg="black")
     verify_button.config(bg="Blue",fg="white")
+    update_button.config(bg="white",fg="black")
     text_box2.delete('1.0','end')
-    text_box2.insert('1.0',f"Confirm your choice ((({ltp_code.get()} : {data[r3.get()+1][0]} : slot-{ro_co_dict[r3.get()].index(1)+1}))) for {sub_code.get()}")
+    text_box2.insert('1.0',f"Confirm your choice {ltp_code.get()} : for the subject {sub_code.get()} for {semester_code.get()} in {assign_dept_code.get()} .... ")
+    text_box2.insert('2.0',f"Selected choice {data_tt[1]["week_day"][r3.get()]} for the slot {data_tt[2][(ro_co_dict[r3.get()].index(1))+1]} ")
 def verify_ok():
-    global lec_count,lec_intt
-    lec_intt = 0
-    for ro in range(5):
-        for co in range(7):
-            if data[ro+1][co+1] == sub_code.get():
-                lec_intt = lec_intt + 1
-    print(lec_intt)
-    if lec_intt != lec_count:
-        text_box2.delete('1.0','end')
-        text_box2.insert('1.0',f"Update to save {sub_code.get()} : {lec_count} {ltp_code.get()} slots, {lec_intt-1} saved. ENTER all slots for {sub_code.get()}")
-    else:
-        text_box2.delete('1.0','end')
-        text_box2.insert('1.0',f"Save {sub_code.get()} : Update to save")
     update_button.config(bg="Blue",fg="white")
     verify_button.config(bg="white",fg="black")
+    refresh_button.config(bg="white",fg="black")
+    text_box2.delete('1.0','end')
+    text_box2.insert('1.0',f"Confirm and SAVE to Time Table")
 def update_tt():
-    global lec_intt
-    workbook = load_workbook(filename=f"timeTable_{assign_dept_code.get()}.xlsx")
-    sheet = workbook[semester_code.get()]
+    data_tt = excel_read1(f"timeTable_{assign_dept_code.get()}",semester_code.get())
+    data_faculty = excel_read1("faculty_data",dept_code.get())
+    data_temp = excel_read1(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get())
+    #print(data_temp[1])
+    #print()
+    #print(data_temp[2])
+    #print(data_faculty[2])
+    #print()
+    update_button.config(bg="white",fg="black")
+    #print(data_faculty[1]["emp_code"].index(int(emp_code.get())))
+    faculty_ref = data_faculty[1]["nick_name"][data_faculty[1]["emp_code"].index(int(emp_code.get()))]
+    #print(faculty_ref)
     match ltp_code.get():
         case "Lecture":
-            for i in range(len(row_val)):
-                sheet.cell(row=row_val[i]+2,column=col_val[i]+2,value=sub_code.get())
-    workbook.save(filename=f"timeTable_{assign_dept_code.get()}.xlsx")
-    workbook.close()
-    #@@@@@@@@@@@@@@@
+            if faculty_ref in data_temp[1]["nick_name"]:
+                temp_rowid = data_temp[1]["nick_name"].index(faculty_ref)
+                print(faculty_ref,temp_rowid,data_temp[1]["nick_name"][data_temp[1]["nick_name"].index(faculty_ref)])
+                print(data_temp[2])
+                print(data_temp[1]['emp_code'][temp_rowid])
+            else:
+                print("NO")
+    return
+
     match ltp_code.get():
         case "Lecture":
             wb = load_workbook(f"faculty_assignment_{odd_even_code.get()}.xlsx")
@@ -326,18 +240,11 @@ def update_tt():
                 code_select_lst.append(sheet.cell(row=i+2,column=5).value)
             print(nick_name_lst)
             print(code_select_lst)
-            """
-            #data_faculty = excel_read("faculty_data",dept_code.get())
-            for i in range(len(sheet['A']))):
-                print(sheet.cell(row=i+1,column=1).value)
-                print
-                print(data_assigned[i]["nick_name"],nick_name_dict[list(emp_dict.values()).index(int(emp_code.get()))])
-            """
+
     #@@@@@@@@@@@@@@@
     text_box2.delete('1.0','end')
     text_box2.insert('1.0',f"Timetable updated for {assign_dept_code.get()} : {semester_code.get()} :  Lecture {sub_code.get()}")
     TimeTable(root,f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get())
-    update_button.config(bg="white",fg="black")
     text_box2.delete('1.0','end')
     if lec_count != lec_intt:
         text_box2.insert('1.0',f"{sub_code.get()} : {lec_count} {ltp_code.get()} slots, {lec_intt} saved. ENTER all slots for {sub_code.get()}")
