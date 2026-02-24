@@ -21,8 +21,6 @@ def pd_inexcel_row_del():    #delete a row
     df = pd.read_excel("faculty_data.xlsx",engine = "openpyxl")
     df = df[df["emp_code"] != 1008]  #row
     df.to_excel("faculty_data.xlsx",index=False,engine = "openpyxl")
-
-
 def excel_read1(file_name,sheet_name):
     data_dfrow = []
     lst_dfcol = []
@@ -46,27 +44,21 @@ def excel_writerows(file_name,sheet_name,data_header,data_column):
     sheet = workbook[sheet_name]
     print(sheet.title)
     return
-    ws.write(data_header)
-    data_infile=[]
-    for j in range(len(data_column["nick_name"])):
-        row_indata=[]
-        for i in range(len(data_header)):
-            row_indata.append(data_column[data_header[i]][j])
-        ws.append(row_indata)
-        #data_infile.append(row_indata)
-    wb.save(filename=f"{file_name}.xlsx")
-    wb.close()
-
 def parent_dept_selection(event): 
     global data_faculty
     action_code.set('')
     action_code.config(values=(''))
-    emp_code.set('')
-    data_faculty = excel_read1("faculty_data",dept_code.get())
-    emp_code.config(values=data_faculty[1]["emp_code"])
+    dept_emp_code.set('')
+    data_faculty = excel_read1("faculty_data",dept_code.get()) 
+    #emp_code.config(values=data_faculty[1]["emp_code"])
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    df_dept_data = pd.read_excel("faculty_data.xlsx",sheet_name=dept_code.get(), usecols=["emp_code"], engine = "openpyxl")
+    dept_emp_code.config(values=list(df_dept_data.emp_code))
 def emp_code_selection(event):
     action_code.set('')
     action_code.config(values=(''))
+    ltp_code.set('')
+    ltp_code.config(values=(''))
     assign_dept_code.set('')
     assign_dept_code.config(values=("CE","ME","EE"))
 def dept_option_selection(event):
@@ -101,73 +93,89 @@ def ltp_option_selection(event):
     cur_col_dict = dict(zip(data_curi[2], cur_col_lst))
     data_tt = excel_read1(f"timeTable_{assign_dept_code.get()}",semester_code.get())
     data_temp = excel_read1(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get())
-    """
-    #--------
-    print(data_temp[0])
-    for row in data_temp[0]:
-        row_lst = [value for value in row.values()]
-        print(row_lst)
-    print()
-    keys = data_temp[2]
-    values = []
-    for i in range(len(data_temp[2])):
-        values.append(data_temp[1][data_temp[2][i]])
-    my_dict = dict(zip(keys,values))
-    print(my_dict)
-    #--------
-    """
-    faculty_sel = (data_faculty[1]["nick_name"][(data_faculty[1]["emp_code"].index(int(emp_code.get())))]) #from faculty file
+    faculty_sel = (data_faculty[1]["nick_name"][(data_faculty[1]["emp_code"].index(int(dept_emp_code.get())))]) #from faculty file
+    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    df_curi_data = pd.read_excel(f"curiculam_{assign_dept_code.get()}.xlsx",sheet_name=semester_code.get(), engine = "openpyxl")
+    df_curi_active = df_curi_data[df_curi_data["Select"] != 0]
+    df_dept_data = pd.read_excel("faculty_data.xlsx",sheet_name=dept_code.get(), usecols=["emp_code","nick_name"], engine = "openpyxl")
+    df_selected_data = pd.read_excel(f"faculty_assignment_{odd_even_code.get()}.xlsx",sheet_name=assign_dept_code.get(), engine = "openpyxl")
+    faculty_sel = df_dept_data[df_dept_data["emp_code"]==int(dept_emp_code.get())]
+    faculty_name = list(faculty_sel.get("nick_name"))[0]
     match ltp_code.get():
         case "Lecture":
-            cur_lec_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["L"])[i] != 0]
-            cur_L_lst = [(cur_col_dict["L"])[i] for i in range(len(cur_col_dict["L"])) if list(cur_col_dict["L"])[i] != 0]
-        # avoid duplicate entry in Lecture
-            new_lec_lst = [lec for lec in cur_lec_lst if cur_L_lst[cur_lec_lst.index(lec)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == lec])]
-            code_lst = []
-            for i in range(len(new_lec_lst)):
-                if new_lec_lst[i] not in data_temp[1]["L_code"]:
-                    code_lst.append(new_lec_lst[i])
+            df_curi_lec = df_curi_active[df_curi_active["L"] != 0]
+            if df_selected_data.empty:
+                code_lst = list(df_curi_lec.Code)
+                return
+            for i in range(len(df_selected_data)):
+                selected_data_curi_key = find_key(df_curi_lec.Code,list(df_selected_data.L_code)[i])
+                if (df_curi_lec.L[selected_data_curi_key] - list(df_selected_data.L_hr)[i]) == 0:
+                    df_curi_lec_l0 = df_curi_lec[df_curi_lec['Code'] != df_curi_lec.Code[selected_data_curi_key]]
                 else:
-                    if faculty_sel == data_temp[1]["nick_name"][data_temp[1]["L_code"].index(new_lec_lst[i])]:
-                        code_lst.append(new_lec_lst[i])
-                        print(faculty_sel,data_temp[1]["nick_name"][(data_temp[1]["L_code"].index(new_lec_lst[i]))])             
+                    if faculty_name != list(df_selected_data.nick_name)[i]:
+                        df_curi_lec_l0 = df_curi_lec[df_curi_lec['Code'] != df_curi_lec.Code[selected_data_curi_key]]
+                    else:
+                        df_curi_lec_l0 = df_curi_lec
+                df_curi_lec = df_curi_lec_l0
+            print(list(df_curi_lec.Code))
+            code_lst = list(df_curi_lec.Code)           
+            df_selected_lec = df_selected_data[df_selected_data['nick_name'] == faculty_name]
         case "Tutorial":
-            cur_tut_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["T"])[i] != 0]
-            cur_T_lst = [(cur_col_dict["T"])[i] for i in range(len(cur_col_dict["T"])) if list(cur_col_dict["T"])[i] != 0]
-            cur_num_lst = [(cur_col_dict["Number"])[i] for i in range(len(cur_col_dict["Number"])) if list(cur_col_dict["T"])[i] != 0]
-            new_tut_lst = [tut for tut in cur_tut_lst if cur_T_lst[cur_tut_lst.index(tut)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == tut])]
-            """    
-        # count faculty for tutorial    
-            T_num_lst = []
-            for i in range(len(cur_tut_lst)):
-                if cur_num_lst[i] <= 26:
-                    T_count = 1
-                elif cur_num_lst[i] <= 48:
-                    T_count = 2
+            df_curi_tut = df_curi_active[df_curi_active["T"] != 0]
+            faculty_in_tut_sel = df_selected_data[df_selected_data['nick_name'] == faculty_name]
+            if list(faculty_in_tut_sel.T_code) != []:
+                df_curi_tut_l0 = df_curi_tut[df_curi_tut['Code'] != list(faculty_in_tut_sel.T_code)[0]]
+                df_curi_tut = df_curi_tut_l0
+            print(list(df_curi_tut.Code))
+            T_ref = {}
+            for i in range(len(df_curi_tut)):
+                if list(df_curi_tut.Number)[i] <= 26:
+                    T_need = 1
+                elif list(df_curi_tut.Number)[i] <= 48:
+                    T_need = 2
                 else:
-                    T_count = 3
-                T_num_lst.append(T_count)
-            print(T_num_lst)
-            """
-            code_lst = []
-            for i in range(len(cur_tut_lst)):
-                if cur_tut_lst[i] not in data_temp[1]["T_code"]:
-                    code_lst.append(cur_tut_lst[i])
+                    T_need = 3
+                T_ref[list(df_curi_tut.Code)[i]] = T_need
+            print(T_ref)
+            print(df_selected_data)
+            for i in range(len(df_selected_data)):
+                selected_data_curi_key = find_key(df_curi_tut.Code,list(df_selected_data.T_code)[i])
+                if selected_data_curi_key == None:
+                    continue
                 else:
-                    if faculty_sel != data_temp[1]["nick_name"][data_temp[1]["T_code"].index(cur_tut_lst[i])]:
-                        code_lst.append(cur_tut_lst[i])              
+                    if T_ref[list(df_selected_data.T_code)[i]] - list(df_selected_data.T_count)[i] == 0:
+                        df_curi_tut_l0 = df_curi_tut[df_curi_tut['Code'] != df_curi_tut.Code[selected_data_curi_key]]  
+                        df_curi_tut = df_curi_tut_l0
+            code_lst = list(df_curi_tut.Code) 
         case "Practical":
-            cur_lab_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["P"])[i] != 0]
-            cur_P_lst = [(cur_col_dict["P"])[i] for i in range(len(cur_col_dict["P"])) if list(cur_col_dict["P"])[i] != 0]
-            cur_num_lst = [(cur_col_dict["Number"])[i] for i in range(len(cur_col_dict["Number"])) if list(cur_col_dict["P"])[i] != 0]
-            new_lab_lst = [lab for lab in cur_lab_lst if cur_P_lst[cur_lab_lst.index(lab)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == lab])]          
-            code_lst = []
-            for i in range(len(cur_lab_lst)):
-                if cur_lab_lst[i] not in data_temp[1]["P_code"]:
-                    code_lst.append(cur_lab_lst[i])
+            df_curi_lab = df_curi_active[df_curi_active["P"] != 0]
+            faculty_in_lab_sel = df_selected_data[df_selected_data['nick_name'] == faculty_name]
+            if list(faculty_in_lab_sel.P_code) != []:
+                df_curi_lab_l0 = df_curi_lab[df_curi_lab['Code'] != list(faculty_in_lab_sel.P_code)[0]]
+                df_curi_lab = df_curi_lab_l0
+            print(list(df_curi_lab.Code))          
+            P_ref = {}
+            for i in range(len(df_curi_lab)):
+                if list(df_curi_lab.Number)[i] <= 18:
+                    P_need = 1
+                elif list(df_curi_lab.Number)[i] <= 32:
+                    P_need = 2
+                elif list(df_curi_lab.Number)[i] <= 48:
+                    P_need = 3
                 else:
-                    if faculty_sel != data_temp[1]["nick_name"][data_temp[1]["T_code"].index(cur_lab_lst[i])]:
-                        code_lst.append(cur_lab_lst[i])                 
+                    P_need = 4
+                P_ref[list(df_curi_lab.Code)[i]] = P_need         
+            print(P_ref)
+            print(df_selected_data)
+            for i in range(len(df_selected_data)):
+                selected_data_curi_key = find_key(df_curi_lab.Code,list(df_selected_data.P_code)[i])
+                if selected_data_curi_key == None:
+                    continue
+                else:
+                    if P_ref[list(df_selected_data.P_code)[i]] - list(df_selected_data.P_count)[i] == 0:
+                        df_curi_lab_l0 = df_curi_lab[df_curi_lab['Code'] != df_curi_lab.Code[selected_data_curi_key]]  
+                        df_curi_lab = df_curi_tut_l0
+            code_lst = list(df_curi_lab.Code)
         case "Projects":
             cur_pro_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["R"])[i] != 0]
             cur_R_lst = [(cur_col_dict["R"])[i] for i in range(len(cur_col_dict["R"])) if list(cur_col_dict["R"])[i] != 0]
@@ -296,8 +304,8 @@ def cancel_option_selection(event):
     lf1_lf2_clear()
     pass
 def lf1_lf2_clear():
-    emp_code.set('')
-    emp_code['values']=()
+    dept_emp_code.set('')
+    dept_emp_code['values']=()
     assign_dept_code.set('')
     odd_even_code.set('')
     semester_code.set('')
@@ -384,12 +392,12 @@ dept_code.grid(row=1,column=0,padx=10,pady=2,sticky="nsew")
 dept_code['values']=("CE","ME","EE")
 dept_code.current()
 dept_code.bind("<<ComboboxSelected>>",parent_dept_selection)
-emp_options=StringVar()
-emp_code=ttk.Combobox(lf1,textvariable=emp_options,state='raedonly')
-emp_code.grid(row=1,column=1,padx=10,pady=2,sticky="nsew")
-emp_code['values']=()
-emp_code.current()
-emp_code.bind("<<ComboboxSelected>>",emp_code_selection)
+dept_emp_options=StringVar()
+dept_emp_code=ttk.Combobox(lf1,textvariable=dept_emp_options,state='raedonly')
+dept_emp_code.grid(row=1,column=1,padx=10,pady=2,sticky="nsew")
+dept_emp_code['values']=()
+dept_emp_code.current()
+dept_emp_code.bind("<<ComboboxSelected>>",emp_code_selection)
 assign_dept_options=StringVar()
 assign_dept_code=ttk.Combobox(lf1,textvariable=assign_dept_options,state='raedonly')
 assign_dept_code.grid(row=1,column=2,padx=10,pady=2,sticky="nsew")
