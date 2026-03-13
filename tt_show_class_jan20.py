@@ -44,6 +44,7 @@ class TimeTable(Toplevel):
 				self.tt.columnconfigure(co+1,weight=1)
 				self.lmn=Label(self.tt,text=f"{self.data[ro][co]}",bg="lightblue",width=10,border=5,borderwidth=2,bd=2,padx=5,pady=5)
 				self.lmn.grid(row=ro+1,column=co+1,padx=2,pady=2,sticky="nsew")
+		#self.close_button = Button(self,text="Close Time Table Window",bg="Yellow",font="bold",command=self.destroy)
 		self.close_button = Button(self,text="Close Time Table Window",bg="Yellow",font="bold",command=self.destroy)
 		self.close_button.grid(row=1,column=0,padx=10,pady=5,sticky="nsew")
 

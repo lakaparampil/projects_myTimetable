@@ -1,26 +1,57 @@
 # Timetable project
 # Intermediate Stage
-# Data Entry upto lf#1, lf#2 complete
 from tkinter import*
 from tkinter import ttk
 import tkinter as tk
 from openpyxl import load_workbook,Workbook
 import pandas as pd
+import numpy as np
 from tt_show_class_jan20 import TimeTable
-
+import os
+def create_excelsheet_orread(file_name,sheet_name):
+    if os.path.exists(file_name):
+        sheet_names_list = pd.ExcelFile(file_name).sheet_names
+        if sheet_name not in sheet_names_list:
+            df_init = pd.DataFrame(data_ref)
+            with pd.ExcelWriter(file_name, mode='a', engine='openpyxl', if_sheet_exists='new') as writer:
+                df_init.to_excel(writer,sheet_name=sheet_name,index=False,engine = "openpyxl")
+            df = pd.read_excel(file_name,sheet_name=sheet_name,engine="openpyxl")
+            return(df)
+        else: 
+            df = pd.read_excel(file_name,sheet_name=sheet_name,engine="openpyxl")
+            return(df)
+    else:
+        df_init = pd.DataFrame(data_ref)
+        df_init.to_excel(file_name,sheet_name,index=False,engine = "openpyxl")
+        df = pd.read_excel(file_name,sheet_name=sheet_name,engine="openpyxl")
+        return(df)   
 def find_key(dictionary,value):
     for key,val in dictionary.items():
         if val == value:
             return(key)
     return None
-def pd_inexcel_row_col():    #updating an item in a row
-    df = pd.read_excel("faculty_data.xlsx",engine = "openpyxl")
-    df.loc[df["nick-name"]=="NIVI","position"]="AsP" #item
-    df.to_excel("faculty_data.xlsx",index=False,engine = "openpyxl")
-def pd_inexcel_row_del():    #delete a row
-    df = pd.read_excel("faculty_data.xlsx",engine = "openpyxl")
-    df = df[df["emp_code"] != 1008]  #row
-    df.to_excel("faculty_data.xlsx",index=False,engine = "openpyxl")
+# Combining sublist in data frame and eliminating common ref elements from two lists
+def common_lst(df_ref,lstname_ref,lstname_sub):  
+    comn_ref_lst = []
+    comn_sub_lst = []
+    for i in range(len(df_ref)):
+        if len(df_ref.at[df_ref.index.tolist()[i],lstname_ref].split(",")) > 1:
+            ref_lst = df_ref.at[df_ref.index.tolist()[i],lstname_ref].split(",")
+            sub_lst = df_ref.at[df_ref.index.tolist()[i],lstname_sub].split(",")
+        else:
+            ref_lst = [str(df_ref.at[df_ref.index.tolist()[i],lstname_ref])]
+            sub_lst = [str(df_ref.at[df_ref.index.tolist()[i],lstname_sub])]
+        comn_ref_lst += ref_lst
+        comn_sub_lst += sub_lst                   
+    unifrom_ref_list = []
+    unifrom_sub_list = []
+    for i in range(len(comn_ref_lst)):
+        if comn_ref_lst[i] not in unifrom_ref_list:
+            unifrom_ref_list.append(comn_ref_lst[i])
+            unifrom_sub_list.append(comn_sub_lst[i])
+    #print(unifrom_ref_list)
+    #print(unifrom_sub_list)                   
+    return(unifrom_sub_list)
 def excel_read1(file_name,sheet_name):
     data_dfrow = []
     lst_dfcol = []
@@ -44,16 +75,14 @@ def excel_writerows(file_name,sheet_name,data_header,data_column):
     sheet = workbook[sheet_name]
     print(sheet.title)
     return
-def parent_dept_selection(event): 
-    global data_faculty
+def parent_dept_selection(event):
+    global df_dept
     action_code.set('')
     action_code.config(values=(''))
     dept_emp_code.set('')
-    data_faculty = excel_read1("faculty_data",dept_code.get()) 
-    #emp_code.config(values=data_faculty[1]["emp_code"])
-    #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    df_dept_data = pd.read_excel("faculty_data.xlsx",sheet_name=dept_code.get(), usecols=["emp_code"], engine = "openpyxl")
-    dept_emp_code.config(values=list(df_dept_data.emp_code))
+    #df_sel = create_excelsheet_orread(file_name='output_data.xlsx',sheet_name=dept_code.get())
+    df_dept = create_excelsheet_orread(file_name='faculty_data.xlsx',sheet_name=dept_code.get())
+    dept_emp_code.config(values=df_dept.emp_code.tolist())
 def emp_code_selection(event):
     action_code.set('')
     action_code.config(values=(''))
@@ -83,6 +112,7 @@ def semester_option_selection(event):
     ltp_code.set('')
     ltp_code.config(values=("Lecture","Tutorial","Practical","Projects"))
 def ltp_option_selection(event):
+    global df_selected_data,faculty_name
     action_code.set('')
     action_code.config(values=(''))
     global data_faculty,data_tt,data_temp,faculty_sel
@@ -92,36 +122,71 @@ def ltp_option_selection(event):
     cur_col_lst = [[data_col_lst[j][i] for i in range(len(data_curi[1]["Select"])) if data_curi[1]["Select"][i] != 0] for j in range(len(data_curi[2]))]
     cur_col_dict = dict(zip(data_curi[2], cur_col_lst))
     data_tt = excel_read1(f"timeTable_{assign_dept_code.get()}",semester_code.get())
-    data_temp = excel_read1(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get())
-    faculty_sel = (data_faculty[1]["nick_name"][(data_faculty[1]["emp_code"].index(int(dept_emp_code.get())))]) #from faculty file
+    #data_temp = excel_read1(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get())
+    #faculty_sel = (data_faculty[1]["nick_name"][(data_faculty[1]["emp_code"].index(int(dept_emp_code.get())))]) #from faculty file
     #@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    df_curi_data = pd.read_excel(f"curiculam_{assign_dept_code.get()}.xlsx",sheet_name=semester_code.get(), engine = "openpyxl")
-    df_curi_active = df_curi_data[df_curi_data["Select"] != 0]
-    df_dept_data = pd.read_excel("faculty_data.xlsx",sheet_name=dept_code.get(), usecols=["emp_code","nick_name"], engine = "openpyxl")
-    df_selected_data = pd.read_excel(f"faculty_assignment_{odd_even_code.get()}.xlsx",sheet_name=assign_dept_code.get(), engine = "openpyxl")
-    faculty_sel = df_dept_data[df_dept_data["emp_code"]==int(dept_emp_code.get())]
-    faculty_name = list(faculty_sel.get("nick_name"))[0]
+    global df_dept,df_curi_lec,df_curi_tut
+    faculty_name = df_dept.nick_name.tolist()[df_dept.emp_code.tolist().index(int(dept_emp_code.get()))]
+    df_curi = create_excelsheet_orread(f"curiculam_{assign_dept_code.get()}.xlsx",semester_code.get())
+    df_curi_active = df_curi[df_curi["Select"] != 0]
+    df_sel = create_excelsheet_orread(f"faculty_assignment_{odd_even_code.get()}.xlsx",sheet_name=assign_dept_code.get())
     match ltp_code.get():
         case "Lecture":
-            df_curi_lec = df_curi_active[df_curi_active["L"] != 0]
-            if df_selected_data.empty:
-                code_lst = list(df_curi_lec.Code)
-                return
-            for i in range(len(df_selected_data)):
-                selected_data_curi_key = find_key(df_curi_lec.Code,list(df_selected_data.L_code)[i])
-                if (df_curi_lec.L[selected_data_curi_key] - list(df_selected_data.L_hr)[i]) == 0:
-                    df_curi_lec_l0 = df_curi_lec[df_curi_lec['Code'] != df_curi_lec.Code[selected_data_curi_key]]
+            df_curi_lec = df_curi_active[df_curi_active["L"] != 0] 
+            df_sel_lec = df_sel[["nick_name","deptL_class","semL","L_code"]].copy()         
+            print(df_sel_lec)
+            if df_sel_lec.empty:
+                code_lst = df_curi_lec.Code.tolist()
+            else:
+                df_sel_lec = df_sel[["nick_name","deptL_class","semL","L_code"]].copy()
+                df_sel_lec.dropna(subset=['nick_name'],inplace=True) # remove rows with empty nick_name
+                if faculty_name in df_sel_lec.nick_name.tolist():
+                    df_sel_lec=df_sel_lec[df_sel_lec["nick_name"]!=faculty_name]
+                    code_lst_temp=df_curi_lec.Code.tolist()
+                    for i in range(len(common_lst(df_sel_lec,"L_code","L_code"))):    
+                        if assign_dept_code.get() == common_lst(df_sel_lec,"L_code","deptL_class")[i] and semester_code.get() == common_lst(df_sel_lec,"L_code","semL")[i]:
+                            code_lst_temp.remove(common_lst(df_sel_lec,"L_code","L_code")[i])
                 else:
-                    if faculty_name != list(df_selected_data.nick_name)[i]:
-                        df_curi_lec_l0 = df_curi_lec[df_curi_lec['Code'] != df_curi_lec.Code[selected_data_curi_key]]
-                    else:
-                        df_curi_lec_l0 = df_curi_lec
-                df_curi_lec = df_curi_lec_l0
-            print(list(df_curi_lec.Code))
-            code_lst = list(df_curi_lec.Code)           
-            df_selected_lec = df_selected_data[df_selected_data['nick_name'] == faculty_name]
+                    code_lst_temp=df_curi_lec.Code.tolist()
+                    for i in range(len(common_lst(df_sel_lec,"L_code","L_code"))): 
+                        if assign_dept_code.get() == common_lst(df_sel_lec,"L_code","deptL_class")[i] and semester_code.get() == common_lst(df_sel_lec,"L_code","semL")[i]:
+                            code_lst_temp.remove(common_lst(df_sel_lec,"L_code","L_code")[i])
+                df_sel_mylec = df_sel[["nick_name","L_code","L_class","L_hr"]].copy()
+                df_sel_mylec.dropna(subset=['nick_name'],inplace=True) # remove rows with empty nick_name
+                if faculty_name in df_sel_mylec.nick_name.tolist():
+                    df_sel_mylec=df_sel_mylec[df_sel_mylec["nick_name"]==faculty_name]
+                    for i in range(len(common_lst(df_sel_mylec,"L_code","L_code"))):
+                        if common_lst(df_sel_mylec,"L_code","L_class")[i] == common_lst(df_sel_mylec,"L_code","L_hr")[i]:
+                            code_lst_temp.remove(common_lst(df_sel_mylec,"L_code","L_code")[i])
+                code_lst=code_lst_temp    
+                print(code_lst)
         case "Tutorial":
             df_curi_tut = df_curi_active[df_curi_active["T"] != 0]
+            df_sel_tut = df_sel[["nick_name","deptT_class","semT","T_code"]].copy()
+            print(df_sel_tut)
+            if df_sel_tut.empty:
+                code_lst = df_curi_tut.Code.tolist()
+                print(df_curi_tut)
+            else:
+                df_sel_tut = df_sel[["nick_name","deptT_class","semT","T_code"]].copy()
+                df_sel_tut.dropna(subset=['nick_name'],inplace=True) # remove rows with empty nick_name
+                print("do the job")
+                T_count = []
+                print(df_curi_tut.Code.tolist())
+                for i in range(len(df_curi_tut)):
+                    if list(df_curi_tut.Number)[i] <= 26:
+                        T_need = 1
+                    elif list(df_curi_tut.Number)[i] <= 48:
+                        T_need = 2
+                    else:
+                        T_need = 3
+                    T_count.append(T_need)
+                print(T_count)
+
+
+
+
+            return
             faculty_in_tut_sel = df_selected_data[df_selected_data['nick_name'] == faculty_name]
             if list(faculty_in_tut_sel.T_code) != []:
                 df_curi_tut_l0 = df_curi_tut[df_curi_tut['Code'] != list(faculty_in_tut_sel.T_code)[0]]
@@ -146,7 +211,8 @@ def ltp_option_selection(event):
                     if T_ref[list(df_selected_data.T_code)[i]] - list(df_selected_data.T_count)[i] == 0:
                         df_curi_tut_l0 = df_curi_tut[df_curi_tut['Code'] != df_curi_tut.Code[selected_data_curi_key]]  
                         df_curi_tut = df_curi_tut_l0
-            code_lst = list(df_curi_tut.Code) 
+            code_lst = list(df_curi_tut.Code)
+            print(code_lst) 
         case "Practical":
             df_curi_lab = df_curi_active[df_curi_active["P"] != 0]
             faculty_in_lab_sel = df_selected_data[df_selected_data['nick_name'] == faculty_name]
@@ -177,11 +243,15 @@ def ltp_option_selection(event):
                         df_curi_lab = df_curi_tut_l0
             code_lst = list(df_curi_lab.Code)
         case "Projects":
-            cur_pro_lst = [(cur_col_dict["Code"])[i] for i in range(len(cur_col_dict["Code"])) if list(cur_col_dict["R"])[i] != 0]
-            cur_R_lst = [(cur_col_dict["R"])[i] for i in range(len(cur_col_dict["R"])) if list(cur_col_dict["R"])[i] != 0]
-            cur_num_lst = [(cur_col_dict["Number"])[i] for i in range(len(cur_col_dict["Number"])) if list(cur_col_dict["R"])[i] != 0]
-            new_pro_lst = [pro for pro in cur_pro_lst if cur_R_lst[cur_pro_lst.index(pro)] > len([i for j in range(1,len(data_tt[2])) for i in range(len(data_tt[1][data_tt[2][j]])) if data_tt[1][data_tt[2][j]][i] == pro])]
-            code_lst = new_pro_lst
+            code_lst = ["Guide-4","Guide-8","Other HoD","other CT","Special"]
+            faculty_in_guide_sel = df_selected_data[df_selected_data['nick_name'] == faculty_name]
+            if list(faculty_in_guide_sel.R_code) != []:
+                code_lst_l0 = code_lst
+                code_lst = code_lst_l0
+            print(code_lst)
+            for i in range(len(code_lst)):
+                R_ref = [round(int(list(df_curi_active.Number)[i])/4),round(int(list(df_curi_active.Number)[i])/8),1,1,2]
+            print(R_ref)
         case _:
             print("Who")
     sub_code.set('')
@@ -253,53 +323,76 @@ def verify_ok():
     text_box2.delete('1.0','end')
     text_box2.insert('1.0',f"Confirm and SAVE to Time Table")
 def update_tt():
+    global df_selected_data,faculty_name,df_curi_lec
     data_tt = excel_read1(f"timeTable_{assign_dept_code.get()}",semester_code.get())
     data_faculty = excel_read1("faculty_data",dept_code.get())
     data_temp = excel_read1(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get())
+    faculty_ref = data_faculty[1]["nick_name"][data_faculty[1]["emp_code"].index(int(dept_emp_code.get()))]
     update_button.config(bg="white",fg="black")
-    #print(data_faculty[1]["emp_code"].index(int(emp_code.get())))
-    faculty_ref = data_faculty[1]["nick_name"][data_faculty[1]["emp_code"].index(int(emp_code.get()))]
-    #print(faculty_ref)
+    df_dept_data = pd.read_excel("faculty_data.xlsx",sheet_name=dept_code.get(), usecols=["emp_code","nick_name"], engine = "openpyxl")
+    df_data_tt = pd.read_excel(f"timeTable_{assign_dept_code.get()}.xlsx",semester_code.get(),engine = "openpyxl")
+    df_sel = create_excelsheet_orread(f"faculty_assignment_{odd_even_code.get()}.xlsx",sheet_name=assign_dept_code.get())
     match ltp_code.get():
         case "Lecture":
-            if faculty_ref in data_temp[1]["nick_name"]: #if faculty in reference document
-                temp_rowid = data_temp[1]["nick_name"].index(faculty_ref)
-                print(data_temp[1]["nick_name"][data_temp[1]["nick_name"].index(faculty_ref)])
-                print(data_temp[2])
-                print(temp_rowid)
-                data_temp[1]['emp_code'][temp_rowid] = emp_code.get()
-                data_temp[1]['dept_origin'][temp_rowid] = dept_code.get()
-                data_temp[1]['dept_class'][temp_rowid] = assign_dept_code.get()
-                data_temp[1]['L_code'][temp_rowid] = sub_code.get()
-                """
-                if sub_code.get() not in data_temp[1]['L_code'][temp_rowid]:
-                    data_temp[1]['L_code'][temp_rowid].append(sub_code.get())
-                else:
-                    data_temp[1]['L_hr'][temp_rowid][data_temp[1]['L_code'][temp_rowid].index(sub_code.get())] += 1
-                """
-                data_temp[1]['work_load'][temp_rowid] += 1
+            class_hr_index = df_curi_lec.Code.tolist().index(sub_code.get())
+            lec_class_hr = str(df_curi_lec.L.tolist()[class_hr_index])
+            print(class_hr_index,lec_class_hr)
+            if faculty_name in list(df_sel.nick_name):
+                index_new = list(df_sel.nick_name).index(faculty_name)
+                if sub_code.get() in df_sel.at[index_new,"L_code"].split(","):
+                    if semester_code.get() in df_sel.at[index_new,"semL"].split(","):
+                        if assign_dept_code.get() in df_sel.at[index_new,"deptL_class"].split(","):
+                            code_index = df_sel.at[index_new,"L_code"].split(",").index(sub_code.get())
+                            #df_sel.loc[index_new,"L_hr"] = int(df_sel.at[index_new,"L_hr"])+1
+                            df_sel.loc[index_new,"L_hr"][code_index] = int(df_sel.at[0,"L_hr"]) if code_index==0 else int(df_sel.at[0,"L_hr"][code_index])+1
+                            df_sel.to_excel(f"faculty_assignment_{odd_even_code.get()}.xlsx",dept_code.get(),index=False,engine="openpyxl")
+                else:    
+                    df_sel.loc[index_new,"deptL_class"] = f"{df_sel.at[index_new,"deptL_class"]},{assign_dept_code.get()}"
+                    df_sel.loc[index_new,"semL"] = f"{df_sel.at[index_new,"semL"]},{semester_code.get()}"
+                    df_sel.loc[index_new,"L_code"] = f"{df_sel.at[index_new,"L_code"]},{sub_code.get()}"
+                    df_sel.loc[index_new,"L_class"] = f"{df_sel.at[index_new,"L_class"]},{lec_class_hr}"
+                    df_sel.loc[index_new,"L_hr"] = f"{df_sel.at[index_new,"L_hr"]},{1}"
+                    df_sel.to_excel(f"faculty_assignment_{odd_even_code.get()}.xlsx",dept_code.get(),index=False,engine="openpyxl")
             else:
-                temp_rowid = len(data_temp[1])
-                data_temp[1]['nick_name'].append(faculty_ref)
-                data_temp[1]['emp_code'].append(emp_code.get())
-                data_temp[1]['dept_origin'].append(dept_code.get())
-                data_temp[1]['dept_class'].append(assign_dept_code.get())
-                data_temp[1]['L_code'].append(sub_code.get())
-                data_temp[1]['L_hr'].append(1)
-                data_temp[1]['T_code'].append(0)
-                data_temp[1]['T_hr'].append(0)
-                data_temp[1]['P_code'].append(0)
-                data_temp[1]['P_hr'].append(1)
-                data_temp[1]['R_code'].append(0)
-                data_temp[1]['R_hr'].append(0)           
-                data_temp[1]['work_load'].append(1)
-            print(data_temp[1])
-            excel_writerows(f"faculty_assignment_{odd_even_code.get()}",assign_dept_code.get(),data_temp[2],data_temp[1])
-
-    return
-
-    #@@@@@@@@@@@@@@@
-
+                new_record = pd.DataFrame([{'nick_name':faculty_name,'emp_code':dept_emp_code.get(),'dept_origin':dept_code.get(),
+                    'deptL_class':assign_dept_code.get(),'semL':semester_code.get(),'L_code':sub_code.get(),'L_class':lec_class_hr,"L_hr":1}])
+                df_sel = pd.concat([df_sel,new_record],ignore_index=True)    
+                df_sel.to_excel(f"faculty_assignment_{odd_even_code.get()}.xlsx",dept_code.get(),index=False,engine="openpyxl")
+            print(df_sel)
+        case "Tutorial":
+            if faculty_name in list(df_sel.nick_name):
+                index_new = list(df_sel.nick_name).index(faculty_name)
+                print(index_new)
+                if sub_code.get() in df_sel.at[index_new,"T_code"].split(","):
+                    if semester_code.get() in df_sel.at[index_new,"semT"].split(","):
+                        if assign_dept_code.get() not in df_sel.at[index_new,"deptT_class"].split(","):
+                            df_sel.loc[index_new,"deptT_class"] = f"{df_sel.at[index_new,"deptT_class"]},{assign_dept_code.get()}"
+                            df_sel.loc[index_new,"semT"] = f"{df_sel.at[index_new,"semT"]},{semester_code.get()}"
+                            df_sel.loc[index_new,"T_code"] = f"{df_sel.at[index_new,"T_code"]},{sub_code.get()}"
+                            df_sel.loc[index_new,"T_hr"] = f"{df_sel.at[index_new,"T_hr"]},{1}"
+                            df_sel.to_excel('output_data.xlsx',dept_code.get(),index=False,engine="openpyxl")
+            else:
+                new_record = pd.DataFrame([{'nick_name':faculty_name,'emp_code':dept_emp_code.get(),'dept_origin':dept_code.get(),
+                    'deptT_class':assign_dept_code.get(),'semT':semester_code.get(),'T_code':sub_code.get(),"T_hr":1}])
+                df_sel = pd.concat([df_sel,new_record],ignore_index=True)    
+                df_sel.to_excel('output_data.xlsx',dept_code.get(),index=False,engine="openpyxl")
+        case "Tutorial":
+            if faculty_name in list(df_sel.nick_name):
+                index_new = list(df_sel.nick_name).index(faculty_name)
+                print(index_new)
+                if sub_code.get() in df_sel.at[index_new,"P_code"].split(","):
+                    if semester_code.get() in df_sel.at[index_new,"semP"].split(","):
+                        if assign_dept_code.get() not in df_sel.at[index_new,"deptP_class"].split(","):
+                            df_sel.loc[index_new,"deptP_class"] = f"{df_sel.at[index_new,"deptP_class"]},{assign_dept_code.get()}"
+                            df_sel.loc[index_new,"semP"] = f"{df_sel.at[index_new,"semP"]},{semester_code.get()}"
+                            df_sel.loc[index_new,"P_code"] = f"{df_sel.at[index_new,"P_code"]},{sub_code.get()}"
+                            df_sel.loc[index_new,"P_hr"] = f"{df_sel.at[index_new,"P_hr"]},{1}"
+                            df_sel.to_excel('output_data.xlsx',dept_code.get(),index=False,engine="openpyxl")
+            else:
+                new_record = pd.DataFrame([{'nick_name':faculty_name,'emp_code':dept_emp_code.get(),'dept_origin':dept_code.get(),
+                    'deptP_class':assign_dept_code.get(),'semP':semester_code.get(),'P_code':sub_code.get(),"P_hr":2}])
+                df_sel = pd.concat([df_sel,new_record],ignore_index=True)    
+                df_sel.to_excel('output_data.xlsx',dept_code.get(),index=False,engine="openpyxl")             
 def cancel_option_selection(event):
     lf1_lf2_clear()
     pass
@@ -370,6 +463,15 @@ odd_even="odd"
 day_slot={"week_slot":3,"time_slot0":0,"time_slot1":1,"time_slot2":2,"time_slot3":3,
     "time_slot4":4,"time_slot5":5,"time_slot6":6}
 sr=IntVar()
+#Storage file for manipulation
+data_ref = [{'nick_name':'','emp_code':'','dept_origin':'','deptL_class':'','semL':'','L_code':'','L_class':'',"L_hr":'',
+    'deptT_class':'','semT':'','T_code':'',"T_hr":'','deptP_class':'','semP':'','P_code':'',"P_hr":'',
+    'deptR_class':'','semR':'','R_code':'',"R_hr":''}]
+#Storage file on departments
+dept_data = [{'emp_code':'','dept':'','grade':'','nick_name':'','pay_band':''}]
+#Storage file on curiculam
+curi_data = [{'Code':'','Subject':'','Select':'','Number':'','L':'','T':'','P':'','R':''}]
+
 #LBELFRAME lf1
 frame.columnconfigure(0,weight=1) #weight= 1 indicates scale of one
 frame.rowconfigure((0,1,2,3),weight=1)
